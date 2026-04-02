@@ -68,11 +68,17 @@ const MISSING_WARNINGS = {
 }
 
 function getMissing(routine) {
+  const allCats = new Set()
   const amCats = new Set()
   DAYS.forEach(d => {
-    (routine[d]?.am || []).forEach(s => amCats.add(s.category))
+    ;(routine[d]?.am || []).forEach(s => { allCats.add(s.category); amCats.add(s.category) })
+    ;(routine[d]?.pm || []).forEach(s => allCats.add(s.category))
   })
-  return ['cleanser', 'moisturiser', 'sunscreen'].filter(c => !amCats.has(c))
+  const missing = []
+  if (!allCats.has('cleanser'))    missing.push('cleanser')
+  if (!allCats.has('moisturiser')) missing.push('moisturiser')
+  if (!amCats.has('sunscreen'))    missing.push('sunscreen')
+  return missing
 }
 
 // ── AddForm ──────────────────────────────────────────────────────
