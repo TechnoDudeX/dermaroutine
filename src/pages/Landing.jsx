@@ -350,7 +350,7 @@ export default function Landing() {
     { q: 'What is TrackMySkin?', a: 'TrackMySkin is a skincare routine app that helps you build and track your daily skincare routine with AM and PM steps.' },
     { q: 'How do I track my skincare routine daily?', a: 'Use TrackMySkin to check off each step in your routine every morning and night. This helps you stay consistent.' },
     { q: 'What is the correct skincare routine order?', a: 'TrackMySkin organizes your products in the correct order, usually cleanser, treatment, serum, moisturizer, and sunscreen in the morning.' },
-    { q: 'Is TrackMySkin free?', a: 'TrackMySkin is a one-time $5 payment with no subscription.' },
+    { q: 'Is TrackMySkin free?', a: 'Yes — TrackMySkin is completely free, no account or payment required.' },
   ]
 
   return (
@@ -367,7 +367,7 @@ export default function Landing() {
         <div style={{ maxWidth: 1020, margin: '0 auto', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontFamily: 'Playfair Display', fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: '-0.01em' }}>TrackMySkin</div>
           <a
-            href="/login"
+            href="/onboarding"
             style={{
               fontFamily: 'Inter', fontSize: 13, fontWeight: 600,
               color: C.ctaText, background: C.cta,
@@ -376,7 +376,7 @@ export default function Landing() {
               transition: 'opacity 150ms ease',
             }}
           >
-            Get started — $5
+            Get started — free
           </a>
         </div>
       </nav>
@@ -414,17 +414,17 @@ export default function Landing() {
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
               <a
-                href="/login"
+                href="/onboarding"
                 style={ctaStyle(cta1)}
                 onMouseEnter={() => setCta1(true)}
                 onMouseLeave={() => setCta1(false)}
                 onFocus={() => setCta1(true)}
                 onBlur={() => setCta1(false)}
               >
-                Build my routine — $5
+                Build my routine — free
               </a>
               <span style={{ fontFamily: 'Inter', fontSize: 12, color: C.faint }}>
-                One-time payment · No subscription
+                Free, forever · No account needed
               </span>
             </div>
           </div>
@@ -444,7 +444,7 @@ export default function Landing() {
             'Track your skincare routine daily',
             'Build a personalized AM and PM routine',
             'Follow the correct skincare order every day',
-            'One-time payment, no subscription',
+            'Free, forever. No account needed.',
           ].map((pt, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 18, height: 18, borderRadius: 5, background: C.green, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -669,25 +669,27 @@ export default function Landing() {
             background: C.card, border: `1px solid ${C.border}`,
             boxShadow: '0 8px 40px rgba(45,31,23,0.07)',
           }}>
-            <div style={{ fontFamily: 'Playfair Display', fontSize: 72, fontWeight: 700, color: C.text, lineHeight: 1 }}>$5</div>
-            <div style={{ fontFamily: 'Inter', fontSize: 14, color: C.muted, marginTop: 8, marginBottom: 24, fontWeight: 500, letterSpacing: '0.02em' }}>
-              One time · No subscription · No upsells
+            <div style={{ fontFamily: 'Playfair Display', fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 700, color: C.text, lineHeight: 1.1, marginBottom: 8 }}>
+              Free, forever.
+            </div>
+            <div style={{ fontFamily: 'Inter', fontSize: 14, color: C.muted, marginBottom: 24, fontWeight: 500, letterSpacing: '0.02em' }}>
+              No account · No subscription · No upsells
             </div>
             <h2 id="pricing-heading" style={{ fontFamily: 'Playfair Display', fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 700, color: C.text, marginBottom: 14, lineHeight: 1.2 }}>
-              Your routine stays saved and ready every day.
+              Your routine, ready every day.
             </h2>
             <p style={{ fontFamily: 'Inter', fontSize: 15, color: C.muted, lineHeight: 1.65, maxWidth: 400, margin: '0 auto 36px' }}>
-              Pay once and get a personalized AM and PM routine. No monthly fees, no locked features. Come back any day and your tracker is still there.
+              Get a personalised AM and PM routine in under a minute. No fees, no locked features, nothing to sign up for. Come back any day and your tracker is still there.
             </p>
             <a
-              href="/login"
+              href="/onboarding"
               style={ctaStyle(cta2)}
               onMouseEnter={() => setCta2(true)}
               onMouseLeave={() => setCta2(false)}
               onFocus={() => setCta2(true)}
               onBlur={() => setCta2(false)}
             >
-              Build my routine — $5
+              Build my routine — free
             </a>
           </div>
         </div>
@@ -750,7 +752,7 @@ export default function Landing() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10,
       }}>
         <span style={{ fontFamily: 'Playfair Display', fontSize: 15, fontWeight: 700, color: C.text }}>TrackMySkin</span>
-        <span style={{ fontFamily: 'Inter', fontSize: 12, color: C.faint }}>Built by Good Kid Labs</span>
+        <span style={{ fontFamily: 'Inter', fontSize: 12, color: C.faint }}>Built by Mazin Kanuga</span>
       </footer>
     </div>
   )

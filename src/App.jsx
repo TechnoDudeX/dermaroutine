@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useStreak } from "./hooks/useStreak";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -14,126 +15,38 @@ const affirmations = {
   Sunday: "You did the whole week. That discipline is rare. Respect the process.",
 };
 
-const routine = {
-  Monday: {
-    am: [
-      { step: "Cleanse", product: "Cetaphil Gentle Skin Cleanser" },
-      { step: "Serum", product: "The Inkey List Vitamin C + EGF" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "Vichy Homme Structure Force" },
-      { step: "Sunscreen", product: "Bioré UV Aqua Rich SPF 50+" },
-    ],
-    pm: [
-      { step: "Cleanse", product: "Clinique For Men Face Wash" },
-      { step: "Treatment", product: "Retin-A (Tretinoin 0.025%)" },
-      { step: "Treatment", product: "Zoryve (Roflumilast Foam 0.3%)" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "La Roche-Posay Hydraphase HA Rich" },
-    ],
-    tags: ["Retinoid Night"],
-  },
-  Tuesday: {
-    am: [
-      { step: "Cleanse", product: "Clinique For Men Face Wash" },
-      { step: "Exfoliate", product: "Clinique For Men Face Scrub" },
-      { step: "Serum", product: "The Inkey List Vitamin C + EGF" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "Vichy Homme Structure Force" },
-      { step: "Sunscreen", product: "Bioré UV Aqua Rich SPF 50+" },
-    ],
-    pm: [
-      { step: "Cleanse", product: "Cetaphil Gentle Skin Cleanser" },
-      { step: "Treatment", product: "Zoryve (Roflumilast Foam 0.3%)" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "CeraVe Facial Moisturizing Lotion PM" },
-    ],
-    tags: ["Exfoliation Day", "Rest Night"],
-  },
-  Wednesday: {
-    am: [
-      { step: "Cleanse", product: "Cetaphil Gentle Skin Cleanser" },
-      { step: "Serum", product: "The Inkey List Vitamin C + EGF" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "Vichy Homme Structure Force" },
-      { step: "Sunscreen", product: "Bioré UV Aqua Rich SPF 50+" },
-    ],
-    pm: [
-      { step: "Cleanse", product: "Clinique For Men Face Wash" },
-      { step: "Treatment", product: "Retin-A (Tretinoin 0.025%)" },
-      { step: "Treatment", product: "Zoryve (Roflumilast Foam 0.3%)" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "La Roche-Posay Hydraphase HA Rich" },
-    ],
-    tags: ["Retinoid Night"],
-  },
-  Thursday: {
-    am: [
-      { step: "Cleanse", product: "Cetaphil Gentle Skin Cleanser" },
-      { step: "Serum", product: "The Inkey List Vitamin C + EGF" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "Vichy Homme Structure Force" },
-      { step: "Sunscreen", product: "Bioré UV Aqua Rich SPF 50+" },
-    ],
-    pm: [
-      { step: "Cleanse", product: "Cetaphil Gentle Skin Cleanser" },
-      { step: "Treatment", product: "Zoryve (Roflumilast Foam 0.3%)" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "CeraVe Facial Moisturizing Lotion PM" },
-    ],
-    tags: ["Rest Night"],
-  },
-  Friday: {
-    am: [
-      { step: "Cleanse", product: "Cetaphil Gentle Skin Cleanser" },
-      { step: "Serum", product: "The Inkey List Vitamin C + EGF" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "Vichy Homme Structure Force" },
-      { step: "Sunscreen", product: "Bioré UV Aqua Rich SPF 50+" },
-    ],
-    pm: [
-      { step: "Cleanse", product: "Clinique For Men Face Wash" },
-      { step: "Treatment", product: "Retin-A (Tretinoin 0.025%)" },
-      { step: "Treatment", product: "Zoryve (Roflumilast Foam 0.3%)" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "La Roche-Posay Hydraphase HA Rich" },
-    ],
-    tags: ["Retinoid Night"],
-  },
-  Saturday: {
-    am: [
-      { step: "Cleanse", product: "Clinique For Men Face Wash" },
-      { step: "Exfoliate", product: "Clinique For Men Face Scrub" },
-      { step: "Serum", product: "The Inkey List Vitamin C + EGF" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "Vichy Homme Structure Force" },
-      { step: "Sunscreen", product: "Bioré UV Aqua Rich SPF 50+" },
-    ],
-    pm: [
-      { step: "Cleanse", product: "Cetaphil Gentle Skin Cleanser" },
-      { step: "Treatment", product: "Zoryve (Roflumilast Foam 0.3%)" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "CeraVe Facial Moisturizing Lotion PM" },
-    ],
-    tags: ["Exfoliation Day", "Rest Night"],
-  },
-  Sunday: {
-    am: [
-      { step: "Cleanse", product: "Cetaphil Gentle Skin Cleanser" },
-      { step: "Serum", product: "The Inkey List Vitamin C + EGF" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "Vichy Homme Structure Force" },
-      { step: "Sunscreen", product: "Bioré UV Aqua Rich SPF 50+" },
-    ],
-    pm: [
-      { step: "Cleanse", product: "Clinique For Men Face Wash" },
-      { step: "Treatment", product: "Retin-A (Tretinoin 0.025%)" },
-      { step: "Treatment", product: "Zoryve (Roflumilast Foam 0.3%)" },
-      { step: "Eye Cream", product: "The Inkey List Caffeine Eye Cream" },
-      { step: "Moisturizer", product: "La Roche-Posay Hydraphase HA Rich" },
-    ],
-    tags: ["Retinoid Night"],
-  },
+const CAT_TO_STEP = {
+  cleanser:    "Cleanse",
+  exfoliant:   "Exfoliate",
+  serum:       "Serum",
+  "eye-cream": "Eye Cream",
+  moisturiser: "Moisturizer",
+  sunscreen:   "Sunscreen",
+  treatment:   "Treatment",
+  toner:       "Toner",
+  oil:         "Oil",
+  mask:        "Mask",
 };
+
+function loadRoutine() {
+  const raw = localStorage.getItem("routine");
+  if (!raw) return null;
+  const stored = JSON.parse(raw);
+  const result = {};
+  for (const [lowDay, data] of Object.entries(stored)) {
+    const day = lowDay.charAt(0).toUpperCase() + lowDay.slice(1);
+    const mapStep = (s) => ({
+      step: CAT_TO_STEP[s.category] ?? (s.category.charAt(0).toUpperCase() + s.category.slice(1)),
+      product: s.product,
+    });
+    result[day] = {
+      am: (data.am || []).map(mapStep),
+      pm: (data.pm || []).map(mapStep),
+      tags: [],
+    };
+  }
+  return result;
+}
 
 const tagColors = {
   "Retinoid Night": { bg: "#3b1f5e", text: "#d4b5ff" },
@@ -451,6 +364,64 @@ const css = `
     line-height: 1.6;
   }
 
+  /* ---- STREAK BANNER ---- */
+  .streak-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-bottom: 20px;
+  }
+
+  .streak-active {
+    background: #1f1a10;
+    border: 1px solid #3a2e12;
+    color: #c8a84a;
+  }
+
+  .streak-broken {
+    background: #1a1010;
+    border: 1px solid #2e1a1a;
+    color: #8a5a5a;
+  }
+
+  .streak-zero {
+    background: #141418;
+    border: 1px solid #22222a;
+    color: #4a4a54;
+  }
+
+  /* ---- STEP CHECK ---- */
+  .step-row {
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
+  }
+
+  .step-row:hover { opacity: 0.8; }
+
+  .step-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid #2e2e34;
+    flex-shrink: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .step-check--done {
+    background: #2a3a2a;
+    border-color: #4a7a4a;
+  }
+
   /* fade in */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
@@ -463,13 +434,24 @@ const css = `
   .fade-d4 { animation-delay: 0.28s; }
 `;
 
-function StepRow({ item }) {
+function StepRow({ item, isChecked, onToggle }) {
   return (
-    <div className="step-row">
+    <div
+      className="step-row"
+      onClick={onToggle}
+      style={isChecked ? { opacity: 0.45 } : undefined}
+    >
       <div className="step-icon">{stepIcons[item.step] || "•"}</div>
-      <div>
+      <div style={{ flex: 1 }}>
         <div className="step-label">{item.step}</div>
         <div className="step-product">{item.product}</div>
+      </div>
+      <div className={`step-check${isChecked ? " step-check--done" : ""}`}>
+        {isChecked && (
+          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+            <path d="M1 3.5L3.5 6L8 1" stroke="#6aaa6a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
       </div>
     </div>
   );
@@ -500,7 +482,23 @@ export default function App() {
   const todayName = DAYS[now.getDay()];
   const hour = now.getHours();
   const isAM = hour < 17;
-  const todayData = routine[todayName];
+
+  const routine = loadRoutine();
+  if (!routine) {
+    return (
+      <>
+        <style>{css}</style>
+        <div className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", textAlign: "center", gap: "16px" }}>
+          <div style={{ fontSize: 16, color: "#a09a92" }}>No routine found — go back and create one.</div>
+          <a href="/onboarding" style={{ color: "#c89ad8", fontSize: 14, textDecoration: "none" }}>← Create your routine</a>
+        </div>
+      </>
+    );
+  }
+
+  const todayData = routine[todayName] ?? { am: [], pm: [], tags: [] };
+
+  const { checked, toggleStep, streak, streakStatus } = useStreak(todayData);
 
   const timeStr = now.toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -530,17 +528,49 @@ export default function App() {
             "{affirmations[todayName]}"
           </div>
 
+          <div className="fade-in fade-d2">
+            {streakStatus === "active" && (
+              <div className="streak-banner streak-active">
+                🔥 {streak} day streak
+              </div>
+            )}
+            {streakStatus === "broken" && (
+              <div className="streak-banner streak-broken">
+                Streak broken — start fresh today
+              </div>
+            )}
+            {streakStatus === "zero" && (
+              <div className="streak-banner streak-zero">
+                Complete today to start your streak
+              </div>
+            )}
+          </div>
+
           <div className="today-grid fade-in fade-d3">
             {/* AM Column */}
             <div className={`col col-am ${isAM ? "col-active" : ""}`}>
               <div className="col-header">☀️  Morning{isAM ? " — Now" : ""}</div>
-              {todayData.am.map((item, i) => <StepRow key={i} item={item} />)}
+              {todayData.am.map((item, i) => (
+                <StepRow
+                  key={i}
+                  item={item}
+                  isChecked={checked.has(`am-${i}`)}
+                  onToggle={() => toggleStep("am", i)}
+                />
+              ))}
             </div>
 
             {/* PM Column */}
             <div className={`col col-pm ${!isAM ? "col-active" : ""}`}>
               <div className="col-header">🌙  Evening{!isAM ? " — Now" : ""}</div>
-              {todayData.pm.map((item, i) => <StepRow key={i} item={item} />)}
+              {todayData.pm.map((item, i) => (
+                <StepRow
+                  key={i}
+                  item={item}
+                  isChecked={checked.has(`pm-${i}`)}
+                  onToggle={() => toggleStep("pm", i)}
+                />
+              ))}
             </div>
           </div>
         </div>
