@@ -61,12 +61,18 @@ const CAT_COLORS = {
 
 function catStyle(cat) { return CAT_COLORS[cat] || CAT_COLORS.other }
 
+const MISSING_WARNINGS = {
+  sunscreen:   '⚠️ No sunscreen detected — SPF is essential if you\'re using actives or concerned about hyperpigmentation. Consider adding one to your routine.',
+  moisturiser: '⚠️ No moisturiser detected — a good moisturiser protects your skin barrier, especially when using actives.',
+  cleanser:    '⚠️ No cleanser detected — cleansing is the foundation of any routine.',
+}
+
 function getMissing(routine) {
-  const cats = new Set()
+  const amCats = new Set()
   DAYS.forEach(d => {
-    ;[...(routine[d]?.am || []), ...(routine[d]?.pm || [])].forEach(s => cats.add(s.category))
+    (routine[d]?.am || []).forEach(s => amCats.add(s.category))
   })
-  return ['cleanser', 'moisturiser', 'sunscreen'].filter(c => !cats.has(c))
+  return ['cleanser', 'moisturiser', 'sunscreen'].filter(c => !amCats.has(c))
 }
 
 // ── AddForm ──────────────────────────────────────────────────────
@@ -404,20 +410,12 @@ export default function Review() {
 
         <div className="rev-content">
 
-          {/* ── Completeness banner ── */}
-          {missing.length > 0 && (
-            <div className="rev-banner rev-banner--warn">
-              <span className="rev-banner-icon">◎</span>
-              <div className="rev-banner-text">
-                A complete routine usually includes a <strong>cleanser</strong>,{' '}
-                <strong>moisturiser</strong>, and <strong>SPF</strong>.{' '}
-                {missing.length === 1
-                  ? <>Consider adding a <strong>{missing[0]}</strong>.</>
-                  : <>Currently missing: <strong>{missing.join(', ')}</strong>.</>
-                }
-              </div>
+          {/* ── Missing essentials banners ── */}
+          {missing.map(key => (
+            <div key={key} className="rev-banner rev-banner--warn">
+              <div className="rev-banner-text">{MISSING_WARNINGS[key]}</div>
             </div>
-          )}
+          ))}
 
           {/* ── Edit mode hint ── */}
           {editMode && (
