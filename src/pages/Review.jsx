@@ -81,38 +81,25 @@ function getMissing(routine) {
   return missing
 }
 
-// ── Product checklist ─────────────────────────────────────────────
-const REQUIRED_CHECKS = [
-  { label: 'Cleanser',    keywords: ['cleanser','wash','foam','gel cleanser','micellar'] },
-  { label: 'Moisturiser', keywords: ['moisturizer','moisturiser','cream','lotion','gel cream','barrier'] },
-  { label: 'Sunscreen',   keywords: ['sunscreen','spf','sunblock','uv'] },
-]
 
-const RECOMMENDED_CHECKS = [
-  { label: 'Vitamin C',   keywords: ['vitamin c','ascorbic','l-aa'] },
-  { label: 'Niacinamide', keywords: ['niacinamide','niacin'] },
-  { label: 'Toner',       keywords: ['toner','essence'] },
-  { label: 'Eye cream',   keywords: ['eye cream','eye serum'] },
-  { label: 'Retinoid',    keywords: ['retinol','retinoid','tretinoin','retin-a','adapalene'] },
-  { label: 'Exfoliant',   keywords: ['aha','bha','glycolic','salicylic','lactic','exfoliant','peeling'] },
-]
+// ── Schedule step matching ────────────────────────────────────────
+// Categories to keep even when unmatched (essential placeholders)
+const ESSENTIAL_CATS = new Set(['cleanser', 'moisturiser', 'sunscreen'])
 
-function matchesAny(productLine, keywords) {
-  const lower = productLine.toLowerCase()
-  return keywords.some(kw => lower.includes(kw))
-}
-
-function buildChecklists(productsText) {
-  const lines = (productsText || '').split('\n').map(l => l.trim()).filter(Boolean)
-  const required = REQUIRED_CHECKS.map(({ label, keywords }) => ({
-    label,
-    found: lines.some(l => matchesAny(l, keywords)),
-  }))
-  const recommended = RECOMMENDED_CHECKS.map(({ label, keywords }) => ({
-    label,
-    found: lines.some(l => matchesAny(l, keywords)),
-  }))
-  return { required, recommended }
+// Returns true if the Claude-normalized step product name matches any line
+// the user actually typed, using bidirectional word-level substring matching.
+function isUserProduct(stepProduct, userLines) {
+  const stepLower = stepProduct.toLowerCase()
+  for (const line of userLines) {
+    const lineLower = line.toLowerCase()
+    // User words (≥3 chars) appearing anywhere in the step name
+    const userWords = lineLower.split(/[\s,/]+/).filter(w => w.length >= 3)
+    if (userWords.some(w => stepLower.includes(w))) return true
+    // Step words (≥4 chars) appearing anywhere in the user line
+    const stepWords = stepLower.split(/[\s,/]+/).filter(w => w.length >= 4)
+    if (stepWords.some(w => lineLower.includes(w))) return true
+  }
+  return false
 }
 
 // ── AddForm ──────────────────────────────────────────────────────
@@ -163,6 +150,7 @@ function Step({
   step, editMode, day, slot, index, routine,
   isDragOver, onDelete, onToggleDay,
   onDragStart, onDragOver, onDrop, onDragEnd,
+  isMatched,
 }) {
   const cs = catStyle(step.category)
 
@@ -195,6 +183,14 @@ function Step({
 
       <div className="rev-step-body">
         <div className="rev-step-top">
+          {isMatched !== undefined && (
+            <span
+              className="rev-match-icon"
+              title={isMatched ? 'In your product list' : 'Not in your product list — needs purchasing'}
+            >
+              {isMatched ? '✅' : '⚠️'}
+            </span>
+          )}
           <span className="rev-product">{step.product}</span>
           <span
             className="rev-cat"
@@ -244,34 +240,46 @@ function Slot({
   day, slot, labelText, labelClass, steps, editMode, routine,
   addingIn, onSetAdding, onAddStep, onDeleteStep, onToggleDay,
   dragOver, onDragStart, onDragOver, onDrop, onDragEnd,
+  userLines,
 }) {
   const isAddingHere = addingIn?.day === day && addingIn?.slot === slot
+
+  // In non-edit mode: drop unmatched steps whose category is non-essential
+  const visibleSteps = editMode || !userLines
+    ? steps.map((s, i) => ({ s, origIndex: i, matched: userLines ? isUserProduct(s.product, userLines) : undefined }))
+    : steps.reduce((acc, s, i) => {
+        const matched = isUserProduct(s.product, userLines)
+        if (!matched && !ESSENTIAL_CATS.has(s.category)) return acc
+        acc.push({ s, origIndex: i, matched })
+        return acc
+      }, [])
 
   return (
     <div className="rev-col">
       <div className={`rev-col-label ${labelClass}`}>{labelText}</div>
 
-      {steps.length > 0
-        ? steps.map((s, i) => (
+      {visibleSteps.length > 0
+        ? visibleSteps.map(({ s, origIndex, matched }) => (
             <Step
-              key={`${s.product}-${i}`}
+              key={`${s.product}-${origIndex}`}
               step={s}
               editMode={editMode}
               day={day}
               slot={slot}
-              index={i}
+              index={origIndex}
               routine={routine}
               isDragOver={
                 dragOver?.day === day &&
                 dragOver?.slot === slot &&
-                dragOver?.index === i
+                dragOver?.index === origIndex
               }
               onDelete={onDeleteStep}
               onToggleDay={onToggleDay}
-              onDragStart={() => onDragStart(day, slot, i)}
-              onDragOver={() => onDragOver(day, slot, i)}
-              onDrop={() => onDrop(day, slot, i)}
+              onDragStart={() => onDragStart(day, slot, origIndex)}
+              onDragOver={() => onDragOver(day, slot, origIndex)}
+              onDrop={() => onDrop(day, slot, origIndex)}
               onDragEnd={onDragEnd}
+              isMatched={matched}
             />
           ))
         : <div className="rev-empty">No steps</div>
@@ -311,9 +319,9 @@ function DaySection(props) {
         {isWeekend && <span className="rev-weekend-badge">Weekend</span>}
       </div>
       <div className="rev-columns">
-        <Slot {...props} slot="am" labelText="☀ AM" labelClass="rev-col-label--am" steps={amSteps} />
+        <Slot {...props} slot="am" labelText="☀ AM" labelClass="rev-col-label--am" steps={amSteps} userLines={props.userLines} />
         <div className="rev-col-divider" />
-        <Slot {...props} slot="pm" labelText="☽ PM" labelClass="rev-col-label--pm" steps={pmSteps} />
+        <Slot {...props} slot="pm" labelText="☽ PM" labelClass="rev-col-label--pm" steps={pmSteps} userLines={props.userLines} />
       </div>
     </div>
   )
@@ -328,11 +336,35 @@ export default function Review() {
     return raw ? JSON.parse(raw) : null
   })
 
-  const checklists = (() => {
+  const essentials = (() => {
     try {
-      const ob = JSON.parse(localStorage.getItem('onboarding') || '{}')
-      return buildChecklists(ob.products || '')
-    } catch { return null }
+      const val = JSON.parse(localStorage.getItem('essentials') || 'null')
+      console.log('[Review] essentials from localStorage:', val)
+      return val
+    } catch (err) {
+      console.error('[Review] failed to parse essentials:', err)
+      return null
+    }
+  })()
+
+  const recommendations = (() => {
+    try {
+      const val = JSON.parse(localStorage.getItem('recommendations') || 'null')
+      console.log('[Review] recommendations from localStorage:', val)
+      return Array.isArray(val) && val.length > 0 ? val : null
+    } catch (err) {
+      console.error('[Review] failed to parse recommendations:', err)
+      return null
+    }
+  })()
+
+  const onboarding = (() => {
+    try { return JSON.parse(localStorage.getItem('onboarding') || '{}') } catch { return {} }
+  })()
+
+  const userLines = (() => {
+    const lines = (onboarding.products || '').split('\n').map(l => l.trim()).filter(Boolean)
+    return lines.length ? lines : null
   })()
   const [editMode, setEditMode]   = useState(false)
   const [showSupport, setShowSupport] = useState(false)
@@ -434,6 +466,7 @@ export default function Review() {
     onDragOver: handleDragOver,
     onDrop: handleDrop,
     onDragEnd: handleDragEnd,
+    userLines,
   }
 
   return (
@@ -457,38 +490,69 @@ export default function Review() {
 
         <div className="rev-content">
 
-          {/* ── Product checklists ── */}
-          {checklists && (
+          {/* ── Essentials checklist (Claude-determined) ── */}
+          {essentials && (
             <div className="rev-checklist-card">
               <div className="rev-checklist-section">
                 <div className="rev-checklist-title">Your routine essentials</div>
-                {checklists.required.map(({ label, found }) => (
-                  <div key={label} className={`rev-check-row ${found ? 'rev-check-row--ok' : 'rev-check-row--warn'}`}>
-                    <span className="rev-check-icon">{found ? '✅' : '⚠️'}</span>
-                    <span className="rev-check-text">
-                      {found
-                        ? `You have a ${label}`
-                        : `Missing: ${label} — essential for every routine`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="rev-checklist-divider" />
-              <div className="rev-checklist-section">
-                <div className="rev-checklist-title">Recommended additions</div>
-                {checklists.recommended.map(({ label, found }) => (
-                  <div key={label} className={`rev-check-row ${found ? 'rev-check-row--ok' : 'rev-check-row--soft'}`}>
-                    <span className="rev-check-icon">{found ? '✅' : '○'}</span>
-                    <span className="rev-check-text">
-                      {found
-                        ? label
-                        : `${label} — not in your current routine, optional but beneficial`}
-                    </span>
-                  </div>
-                ))}
+                {[
+                  { key: 'cleanser',    label: 'Cleanser' },
+                  { key: 'moisturiser', label: 'Moisturiser' },
+                  { key: 'sunscreen',   label: 'Sunscreen' },
+                ].map(({ key, label }) => {
+                  const found = essentials[key]
+                  return (
+                    <div key={key} className={`rev-check-row ${found ? 'rev-check-row--ok' : 'rev-check-row--warn'}`}>
+                      <span className="rev-check-icon">{found ? '✅' : '⚠️'}</span>
+                      <span className="rev-check-text">
+                        {found
+                          ? `You have a ${label}`
+                          : `Missing: ${label} — essential for every routine`}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
+
+          {/* ── Recommended additions (Claude-generated) ── */}
+          {(() => {
+            const skinType = onboarding.skinType || ''
+            const concerns = Array.isArray(onboarding.concerns) && onboarding.concerns.length
+              ? onboarding.concerns.join(', ')
+              : null
+            const blurb = [skinType, concerns].filter(Boolean).join(' skin · ')
+
+            return (
+              <div className="rev-checklist-card">
+                <div className="rev-checklist-section">
+                  <div className="rev-checklist-title">Recommended additions</div>
+                  {blurb && (
+                    <p className="rev-rec-blurb">
+                      Based on your {blurb}
+                    </p>
+                  )}
+                  {recommendations
+                    ? recommendations.map((r, i) => (
+                        <div key={i} className="rev-rec-row">
+                          <span className="rev-rec-icon">＋</span>
+                          <div className="rev-rec-text">
+                            <span className="rev-rec-product">{r.product}</span>
+                            <span className="rev-rec-reason">{r.reason}</span>
+                          </div>
+                        </div>
+                      ))
+                    : (
+                        <p className="rev-rec-fallback">
+                          No personalised recommendations — try regenerating your routine.
+                        </p>
+                      )
+                  }
+                </div>
+              </div>
+            )
+          })()}
 
           {/* ── Missing essentials banners ── */}
           {missing.map(key => (
@@ -682,10 +746,6 @@ const styles = `
     padding: 18px 20px;
   }
 
-  .rev-checklist-divider {
-    height: 1px;
-    background: ${C.borderLight};
-  }
 
   .rev-checklist-title {
     font-size: 0.75rem;
@@ -714,7 +774,59 @@ const styles = `
 
   .rev-check-row--ok   .rev-check-text { color: ${C.text}; font-weight: 500; }
   .rev-check-row--warn .rev-check-text { color: ${C.warn}; font-weight: 500; }
-  .rev-check-row--soft .rev-check-text { color: ${C.muted}; }
+
+  /* ── Recommended additions ── */
+  .rev-rec-blurb {
+    font-size: 0.8125rem;
+    color: ${C.muted};
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .rev-rec-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid ${C.borderLight};
+  }
+  .rev-rec-row:last-child { border-bottom: none; }
+
+  .rev-rec-icon {
+    flex-shrink: 0;
+    width: 18px;
+    text-align: center;
+    font-size: 0.875rem;
+    color: ${C.accent};
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .rev-rec-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .rev-rec-product {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: ${C.text};
+    line-height: 1.3;
+  }
+
+  .rev-rec-reason {
+    font-size: 0.8rem;
+    color: ${C.muted};
+    line-height: 1.45;
+  }
+
+  .rev-rec-fallback {
+    font-size: 0.8125rem;
+    color: ${C.faint};
+    font-style: italic;
+    padding: 4px 0;
+  }
 
   /* ── Day card ── */
   .rev-day {
@@ -799,6 +911,12 @@ const styles = `
     align-items: flex-start;
     gap: 8px;
     flex-wrap: wrap;
+  }
+
+  .rev-match-icon {
+    flex-shrink: 0;
+    font-size: 0.8125rem;
+    line-height: 1;
   }
 
   .rev-product {

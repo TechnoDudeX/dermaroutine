@@ -63,8 +63,19 @@ export default function Generating() {
         throw new Error(body.error || `Server error ${res.status}`)
       }
 
-      const { routine } = await res.json()
+      const data = await res.json()
+      console.log('[Generating] API response keys:', Object.keys(data))
+      console.log('[Generating] essentials:', data.essentials)
+      console.log('[Generating] recommendations:', data.recommendations)
+      console.log('[Generating] routine days:', data.routine ? Object.keys(data.routine) : null)
+
+      const { routine, essentials, recommendations } = data
       localStorage.setItem('routine', JSON.stringify(routine))
+      localStorage.setItem('essentials', JSON.stringify(essentials ?? null))
+      localStorage.setItem('recommendations', JSON.stringify(recommendations ?? []))
+
+      console.log('[Generating] saved to localStorage — essentials:', localStorage.getItem('essentials'))
+      console.log('[Generating] saved to localStorage — recommendations:', localStorage.getItem('recommendations'))
       navigate('/review')
     } catch (err) {
       clearInterval(interval)

@@ -1,7 +1,7 @@
 // Netlify Function: generate-routine
 // POST — calls Claude API to generate a personalized skincare routine
 // Input: { skinType, concerns, products }
-// Returns: { routine } — structured JSON routine with AM/PM steps per day
+// Returns: { routine, essentials, recommendations }
 
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -38,7 +38,7 @@ KEY RULES:
 - Normalize product names: correct spelling mistakes, expand brand shorthand (e.g. "cerave" → "CeraVe", "la roche" → "La Roche-Posay", "TO" or "the ordinary" → "The Ordinary"), and identify the correct category from the full product name even when partially spelled. Examples: "cetaphil gentel cleansr" → "Cetaphil Gentle Skin Cleanser" (cleanser); "niacinamid" → "Niacinamide 10% + Zinc" (serum); "vit c" or "vitaminc" → "Vitamin C Serum" (serum). Always output the correctly spelled, properly capitalized product name in the JSON — never the user's raw misspelled input.
 - Return ONLY valid JSON — no markdown, no code fences, no commentary.
 
-JSON schema (repeat for all 7 days):
+JSON schema:
 {
   "routine": {
     "monday": {
@@ -51,8 +51,28 @@ JSON schema (repeat for all 7 days):
     "friday": { "am": [...], "pm": [...] },
     "saturday": { "am": [...], "pm": [...] },
     "sunday": { "am": [...], "pm": [...] }
-  }
+  },
+  "essentials": {
+    "cleanser": true,
+    "moisturiser": false,
+    "sunscreen": true
+  },
+  "recommendations": [
+    { "product": "string", "reason": "string" }
+  ]
 }
+
+"essentials" rules:
+- Set each boolean by intelligently reading the user's product list using skincare product knowledge, not simple keyword matching.
+- cleanser: true if any product is a face wash, cleansing gel/foam/balm/oil/micellar water, or any product whose primary function is cleansing.
+- moisturiser: true if any product is a moisturiser, hydrating cream, lotion, gel-cream, barrier cream, or any product whose primary function is hydration/occlusion (not sunscreen).
+- sunscreen: true if any product contains SPF or is a UV protection product (e.g. "Biore UV", "Altruist SPF", "La Roche-Posay Anthelios", "Neutrogena Ultra Sheer" etc.).
+- Recognise products by brand knowledge: "CeraVe" alone → moisturiser; "Cetaphil" alone → cleanser or moisturiser depending on context; "Biore UV" → sunscreen; "COSRX Snail 96" → serum, not moisturiser.
+
+"recommendations" rules:
+- Suggest 2–4 products the user would benefit from but does not currently own, based on their skin type, concerns, and essentials gaps.
+- Each item: a properly named product ("product") and a concise one-sentence reason ("reason", max 15 words).
+- Only recommend if there is a genuine gap — do not pad.
 
 Valid category values: cleanser, toner, exfoliant, serum, treatment, eye-cream, moisturiser, sunscreen, oil, mask, other.`
 
@@ -117,13 +137,23 @@ export const handler = async (event) => {
     return { statusCode: 502, headers, body: JSON.stringify({ error: 'Failed to reach Claude API' }) }
   }
 
-  let routine
+  let routine, essentials, recommendations
   try {
-    routine = JSON.parse(raw).routine
-    // Validate all 7 days present
+    const parsed = JSON.parse(raw)
+    routine = parsed.routine
+    essentials = parsed.essentials
+    recommendations = parsed.recommendations
+
+    // Validate routine
     for (const day of DAYS) {
       if (!routine[day]) throw new Error(`Missing day: ${day}`)
     }
+    // Validate essentials
+    for (const key of ['cleanser', 'moisturiser', 'sunscreen']) {
+      if (typeof essentials?.[key] !== 'boolean') throw new Error(`essentials.${key} missing or not boolean`)
+    }
+    // Normalise recommendations to array
+    if (!Array.isArray(recommendations)) recommendations = []
   } catch (err) {
     console.error('JSON parse error:', err, '\nRaw output:', raw)
     return { statusCode: 502, headers, body: JSON.stringify({ error: 'Claude returned malformed JSON' }) }
@@ -132,6 +162,6 @@ export const handler = async (event) => {
   return {
     statusCode: 200,
     headers,
-    body: JSON.stringify({ routine }),
+    body: JSON.stringify({ routine, essentials, recommendations }),
   }
 }
