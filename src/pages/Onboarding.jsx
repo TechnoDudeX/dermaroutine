@@ -34,6 +34,7 @@ export default function Onboarding() {
   const [concerns,  setConcerns]  = useState([])
   const [products,  setProducts]  = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [consented, setConsented] = useState(false)
 
   function toggleConcern(c) {
     setConcerns(prev =>
@@ -50,7 +51,7 @@ export default function Onboarding() {
     navigate('/generating')
   }
 
-  const canSubmit = skinType !== null
+  const canSubmit = skinType !== null && consented
 
   return (
     <>
@@ -222,6 +223,41 @@ export default function Onboarding() {
           color: ${C.faint};
         }
 
+        .ob-consent {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 24px;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .ob-consent-box {
+          flex-shrink: 0;
+          width: 18px;
+          height: 18px;
+          border: 1.5px solid ${C.border};
+          border-radius: 4px;
+          background: ${C.card};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: 2px;
+          transition: border-color 0.15s, background 0.15s;
+        }
+
+        .ob-consent input:checked ~ .ob-consent-box,
+        .ob-consent-box--checked {
+          background: ${C.accentBg};
+          border-color: ${C.accent};
+        }
+
+        .ob-consent-text {
+          font-size: 0.8125rem;
+          color: ${C.muted};
+          line-height: 1.55;
+        }
+
         @media (max-width: 480px) {
           .ob-root { padding: 32px 20px 48px; }
           .ob-title { font-size: 1.5rem; }
@@ -294,11 +330,29 @@ export default function Onboarding() {
               <p className="ob-textarea-hint">One product per line.</p>
             </div>
 
+            <label className="ob-consent" onClick={() => setConsented(v => !v)}>
+              <div className={`ob-consent-box${consented ? ' ob-consent-box--checked' : ''}`}>
+                {consented && (
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4L3.5 6.5L9 1" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
+              <span className="ob-consent-text">
+                I understand these recommendations are AI-generated and not medical or dermatological advice.
+                Always consult a dermatologist for skin concerns. Stop use of any product immediately if you
+                notice adverse reactions.
+              </span>
+            </label>
+
             <button className="ob-submit" type="submit" disabled={!canSubmit || submitted}>
               {submitted ? 'Building your routine…' : 'Build my routine →'}
             </button>
-            {!canSubmit && (
+            {!skinType && (
               <p className="ob-submit-hint">Select your skin type to continue.</p>
+            )}
+            {skinType && !consented && (
+              <p className="ob-submit-hint">Please accept the disclaimer to continue.</p>
             )}
           </form>
         </div>

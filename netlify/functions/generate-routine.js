@@ -35,6 +35,7 @@ KEY RULES:
 - Schedule active-rest days: if retinoids or exfoliants were used on a given night, the following night should be free of those actives. Plan the full 7-day schedule with this in mind.
 - Use only the products the user has listed (plus any required placeholders). Do not invent new products.
 - Keep notes brief and practical (max 12 words): layering order, frequency reminders, ingredient conflicts, or application tips.
+- Normalize product names: correct spelling mistakes, expand brand shorthand (e.g. "cerave" → "CeraVe", "la roche" → "La Roche-Posay", "TO" or "the ordinary" → "The Ordinary"), and identify the correct category from the full product name even when partially spelled. Examples: "cetaphil gentel cleansr" → "Cetaphil Gentle Skin Cleanser" (cleanser); "niacinamid" → "Niacinamide 10% + Zinc" (serum); "vit c" or "vitaminc" → "Vitamin C Serum" (serum). Always output the correctly spelled, properly capitalized product name in the JSON — never the user's raw misspelled input.
 - Return ONLY valid JSON — no markdown, no code fences, no commentary.
 
 JSON schema (repeat for all 7 days):

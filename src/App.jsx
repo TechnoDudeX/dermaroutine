@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStreak } from "./hooks/useStreak";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -54,24 +55,232 @@ const tagColors = {
   "Rest Night": { bg: "#3a2a1a", text: "#deb87d" },
 };
 
+
 const stepIcons = {
   Cleanse: "🧴", Exfoliate: "🧼", Serum: "🍊",
   "Eye Cream": "👁️", Moisturizer: "💧", Sunscreen: "☀️", Treatment: "💊",
 };
 
+// ---- Icon components ----
+
+function MoonIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+    </svg>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  );
+}
+
+function AutoIcon() {
+  // Half-filled circle representing "follows system"
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.25"/>
+      <path d="M12 2a10 10 0 010 20V2z" fill="currentColor"/>
+    </svg>
+  );
+}
+
+function ExpandIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="15 3 21 3 21 9"/>
+      <polyline points="9 21 3 21 3 15"/>
+      <line x1="21" y1="3" x2="14" y2="10"/>
+      <line x1="3" y1="21" x2="10" y2="14"/>
+    </svg>
+  );
+}
+
+function CompressIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="4 14 10 14 10 20"/>
+      <polyline points="20 10 14 10 14 4"/>
+      <line x1="10" y1="14" x2="3" y2="21"/>
+      <line x1="21" y1="3" x2="14" y2="10"/>
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </svg>
+  );
+}
+
+// Light theme CSS variable values — interpolated into css for both [data-theme="light"]
+// and the auto media query, so they're only written once.
+const LIGHT_VARS = `
+    --bg: #f5f0eb;
+    --bg-alt: #ede8e2;
+    --card: #ffffff;
+    --card-hover: #f8f3ee;
+    --card-today: #fdf9f6;
+    --icon-bg: #ede8e0;
+    --text: #2d1f17;
+    --text-strong: #1a100a;
+    --muted: #7a6555;
+    --text-dim: #5a4535;
+    --text-faint: #9a8070;
+    --text-step: #8a7060;
+    --text-divider: #b09080;
+    --text-footer: #c0a898;
+    --border: #e5d4c5;
+    --border-inner: #ede0d4;
+    --border-active: #d4b5a0;
+    --border-check: #d4c0b0;
+    --am-bg: #e4f0df;
+    --am: #3a7a30;
+    --am-dark: #2a6020;
+    --pm-bg: #ede3f5;
+    --pm: #7a3a9a;
+    --pm-dark: #6a2a8a;
+    --streak-active-bg: #fdf3e0;
+    --streak-active-border: #e0c880;
+    --streak-active-text: #7a5a10;
+    --streak-broken-bg: #fde8e8;
+    --streak-broken-border: #e0a0a0;
+    --streak-broken-text: #8a3a3a;
+    --streak-zero-bg: #f0eceb;
+    --streak-zero-border: #ddd0c8;
+    --streak-zero-text: #8a7870;
+    --marker: #8a4aaa;
+    --marker-glow-0: rgba(138, 74, 170, 0.35);
+    --marker-glow-1: rgba(138, 74, 170, 0);
+    --glow: rgba(120, 80, 160, 0.08);
+    --check-bg: #d0eac8;
+    --check-border: #4a8a40;
+    --check-icon: #2a6a20;
+    --ctrl-btn-bg: rgba(0, 0, 0, 0.06);
+    --ctrl-btn-hover: rgba(0, 0, 0, 0.12);
+    --ctrl-btn-color: #5a4535;
+`;
+
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap');
+
+  /* ---- CUSTOM PROPERTIES: DARK (default) ---- */
+  :root {
+    --bg: #0b0b0d;
+    --bg-alt: #0f0f12;
+    --card: #121215;
+    --card-hover: #141418;
+    --card-today: #111115;
+    --icon-bg: #18181b;
+    --text: #e8e4df;
+    --text-strong: #f5f0ea;
+    --muted: #a09a92;
+    --text-dim: #d4d0ca;
+    --text-faint: #6a6560;
+    --text-step: #5a5650;
+    --text-divider: #4a4640;
+    --text-footer: #3a3630;
+    --border: #1e1e22;
+    --border-inner: #1a1a1e;
+    --border-active: #3a3a40;
+    --border-check: #2e2e34;
+    --am-bg: #1a2e1a;
+    --am: #a8d89a;
+    --am-dark: #5a8a4e;
+    --pm-bg: #2a1a2e;
+    --pm: #c89ad8;
+    --pm-dark: #7a4e8a;
+    --streak-active-bg: #1f1a10;
+    --streak-active-border: #3a2e12;
+    --streak-active-text: #c8a84a;
+    --streak-broken-bg: #1a1010;
+    --streak-broken-border: #2e1a1a;
+    --streak-broken-text: #8a5a5a;
+    --streak-zero-bg: #141418;
+    --streak-zero-border: #22222a;
+    --streak-zero-text: #4a4a54;
+    --marker: #d4b5ff;
+    --marker-glow-0: rgba(212, 181, 255, 0.4);
+    --marker-glow-1: rgba(212, 181, 255, 0);
+    --glow: rgba(200, 154, 216, 0.06);
+    --check-bg: #2a3a2a;
+    --check-border: #4a7a4a;
+    --check-icon: #6aaa6a;
+    --ctrl-btn-bg: rgba(255, 255, 255, 0.07);
+    --ctrl-btn-hover: rgba(255, 255, 255, 0.12);
+    --ctrl-btn-color: #a09a92;
+  }
+
+  /* ---- LIGHT THEME ---- */
+  [data-theme="light"] {
+    ${LIGHT_VARS}
+  }
+
+  /* ---- AUTO THEME: follows system preference ---- */
+  @media (prefers-color-scheme: light) {
+    [data-theme="auto"] {
+      ${LIGHT_VARS}
+    }
+  }
 
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: #0b0b0d;
-    color: #e8e4df;
+    background: var(--bg);
+    color: var(--text);
     font-family: 'DM Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
+    transition: background 0.25s, color 0.25s;
   }
 
   .page { max-width: 900px; margin: 0 auto; padding: 32px 20px 64px; }
+
+  /* ---- CONTROLS BAR ---- */
+  .ctrl-bar {
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ctrl-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--ctrl-btn-bg);
+    color: var(--ctrl-btn-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  .ctrl-btn:hover {
+    background: var(--ctrl-btn-hover);
+    color: var(--text);
+  }
 
   /* ---- TODAY HERO ---- */
   .hero { margin-bottom: 56px; }
@@ -87,14 +296,14 @@ const css = `
     font-family: 'Playfair Display', serif;
     font-size: 36px;
     font-weight: 700;
-    color: #f5f0ea;
+    color: var(--text-strong);
     letter-spacing: -0.5px;
   }
 
   .hero-time {
     font-size: 14px;
     font-weight: 500;
-    color: #6a6560;
+    color: var(--text-faint);
     letter-spacing: 1px;
   }
 
@@ -109,15 +318,15 @@ const css = `
     margin-bottom: 16px;
   }
 
-  .badge-am { background: #1a2e1a; color: #a8d89a; }
-  .badge-pm { background: #2a1a2e; color: #c89ad8; }
+  .badge-am { background: var(--am-bg); color: var(--am); }
+  .badge-pm { background: var(--pm-bg); color: var(--pm); }
 
   .hero-affirmation {
     font-family: 'Playfair Display', serif;
     font-style: italic;
     font-size: 18px;
     font-weight: 500;
-    color: #a09a92;
+    color: var(--muted);
     line-height: 1.55;
     margin-bottom: 28px;
     max-width: 600px;
@@ -146,8 +355,8 @@ const css = `
   }
 
   .col {
-    background: #121215;
-    border: 1px solid #1e1e22;
+    background: var(--card);
+    border: 1px solid var(--border);
     border-radius: 14px;
     padding: 20px;
     position: relative;
@@ -161,12 +370,12 @@ const css = `
     height: 3px;
   }
 
-  .col-am::before { background: linear-gradient(90deg, #a8d89a, #5a8a4e); }
-  .col-pm::before { background: linear-gradient(90deg, #c89ad8, #7a4e8a); }
+  .col-am::before { background: linear-gradient(90deg, var(--am), var(--am-dark)); }
+  .col-pm::before { background: linear-gradient(90deg, var(--pm), var(--pm-dark)); }
 
   .col-active {
-    border-color: #3a3a40;
-    box-shadow: 0 0 40px rgba(200, 154, 216, 0.06);
+    border-color: var(--border-active);
+    box-shadow: 0 0 40px var(--glow);
   }
 
   .col-header {
@@ -177,24 +386,28 @@ const css = `
     margin-bottom: 18px;
   }
 
-  .col-am .col-header { color: #a8d89a; }
-  .col-pm .col-header { color: #c89ad8; }
+  .col-am .col-header { color: var(--am); }
+  .col-pm .col-header { color: var(--pm); }
 
   .step-row {
     display: flex;
     gap: 12px;
     padding: 11px 0;
-    border-bottom: 1px solid #1a1a1e;
+    border-bottom: 1px solid var(--border-inner);
     align-items: flex-start;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
   }
 
   .step-row:last-child { border-bottom: none; }
+  .step-row:hover { opacity: 0.8; }
 
   .step-icon {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: #18181b;
+    background: var(--icon-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -205,7 +418,7 @@ const css = `
   .step-label {
     font-size: 10px;
     font-weight: 600;
-    color: #5a5650;
+    color: var(--text-step);
     text-transform: uppercase;
     letter-spacing: 0.6px;
     margin-bottom: 2px;
@@ -214,7 +427,7 @@ const css = `
   .step-product {
     font-size: 13px;
     font-weight: 500;
-    color: #d4d0ca;
+    color: var(--text-dim);
     line-height: 1.35;
   }
 
@@ -226,14 +439,14 @@ const css = `
     margin: 56px 0 40px;
   }
 
-  .divider-line { flex: 1; height: 1px; background: #1e1e22; }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
 
   .divider-text {
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #4a4640;
+    color: var(--text-divider);
   }
 
   /* ---- WEEKLY GRID ---- */
@@ -244,8 +457,8 @@ const css = `
   }
 
   .week-day {
-    background: #0f0f12;
-    border: 1px solid #1a1a1e;
+    background: var(--bg-alt);
+    border: 1px solid var(--border-inner);
     border-radius: 14px;
     overflow: hidden;
   }
@@ -255,18 +468,18 @@ const css = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #1a1a1e;
+    border-bottom: 1px solid var(--border-inner);
     cursor: pointer;
     transition: background 0.2s;
   }
 
-  .week-day-header:hover { background: #141418; }
+  .week-day-header:hover { background: var(--card-hover); }
 
   .week-day-name {
     font-family: 'Playfair Display', serif;
     font-size: 20px;
     font-weight: 700;
-    color: #f5f0ea;
+    color: var(--text-strong);
   }
 
   .week-day-tags { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -275,7 +488,7 @@ const css = `
     font-family: 'Playfair Display', serif;
     font-style: italic;
     font-size: 14px;
-    color: #6a6560;
+    color: var(--text-faint);
     padding: 0 20px 14px;
     line-height: 1.5;
   }
@@ -290,18 +503,14 @@ const css = `
     .week-day-body { grid-template-columns: 1fr; }
   }
 
-  .week-col {
-    padding: 16px 20px;
-  }
+  .week-col { padding: 16px 20px; }
 
-  .week-col:first-child {
-    border-right: 1px solid #1a1a1e;
-  }
+  .week-col:first-child { border-right: 1px solid var(--border-inner); }
 
   @media (max-width: 600px) {
     .week-col:first-child {
       border-right: none;
-      border-bottom: 1px solid #1a1a1e;
+      border-bottom: 1px solid var(--border-inner);
     }
   }
 
@@ -313,8 +522,8 @@ const css = `
     margin-bottom: 12px;
   }
 
-  .week-col-am .week-col-label { color: #a8d89a; }
-  .week-col-pm .week-col-label { color: #c89ad8; }
+  .week-col-am .week-col-label { color: var(--am); }
+  .week-col-pm .week-col-label { color: var(--pm); }
 
   .week-step {
     display: flex;
@@ -328,7 +537,7 @@ const css = `
     width: 26px;
     height: 26px;
     border-radius: 6px;
-    background: #18181b;
+    background: var(--icon-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -337,7 +546,7 @@ const css = `
 
   .week-step-product {
     font-size: 12px;
-    color: #a09a92;
+    color: var(--muted);
     line-height: 1.3;
   }
 
@@ -345,21 +554,21 @@ const css = `
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #d4b5ff;
+    background: var(--marker);
     display: inline-block;
     margin-left: 10px;
     animation: pulse 2s ease-in-out infinite;
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(212, 181, 255, 0.4); }
-    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(212, 181, 255, 0); }
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--marker-glow-0); }
+    50%       { opacity: 0.7; box-shadow: 0 0 0 6px var(--marker-glow-1); }
   }
 
   .footer-note {
     text-align: center;
     font-size: 11px;
-    color: #3a3630;
+    color: var(--text-footer);
     margin-top: 48px;
     line-height: 1.6;
   }
@@ -378,37 +587,29 @@ const css = `
   }
 
   .streak-active {
-    background: #1f1a10;
-    border: 1px solid #3a2e12;
-    color: #c8a84a;
+    background: var(--streak-active-bg);
+    border: 1px solid var(--streak-active-border);
+    color: var(--streak-active-text);
   }
 
   .streak-broken {
-    background: #1a1010;
-    border: 1px solid #2e1a1a;
-    color: #8a5a5a;
+    background: var(--streak-broken-bg);
+    border: 1px solid var(--streak-broken-border);
+    color: var(--streak-broken-text);
   }
 
   .streak-zero {
-    background: #141418;
-    border: 1px solid #22222a;
-    color: #4a4a54;
+    background: var(--streak-zero-bg);
+    border: 1px solid var(--streak-zero-border);
+    color: var(--streak-zero-text);
   }
 
   /* ---- STEP CHECK ---- */
-  .step-row {
-    cursor: pointer;
-    user-select: none;
-    transition: opacity 0.15s;
-  }
-
-  .step-row:hover { opacity: 0.8; }
-
   .step-check {
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    border: 1.5px solid #2e2e34;
+    border: 1.5px solid var(--border-check);
     flex-shrink: 0;
     margin-left: auto;
     display: flex;
@@ -418,20 +619,23 @@ const css = `
   }
 
   .step-check--done {
-    background: #2a3a2a;
-    border-color: #4a7a4a;
+    background: var(--check-bg);
+    border-color: var(--check-border);
   }
 
-  /* fade in */
+  /* ---- FADE IN ---- */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   .fade-in { animation: fadeUp 0.5s ease-out both; }
   .fade-d1 { animation-delay: 0.05s; }
   .fade-d2 { animation-delay: 0.12s; }
   .fade-d3 { animation-delay: 0.2s; }
   .fade-d4 { animation-delay: 0.28s; }
+
+
+
 `;
 
 function StepRow({ item, isChecked, onToggle }) {
@@ -448,8 +652,8 @@ function StepRow({ item, isChecked, onToggle }) {
       </div>
       <div className={`step-check${isChecked ? " step-check--done" : ""}`}>
         {isChecked && (
-          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-            <path d="M1 3.5L3.5 6L8 1" stroke="#6aaa6a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="9" height="7" viewBox="0 0 9 7" fill="none" style={{ color: "var(--check-icon)" }}>
+            <path d="M1 3.5L3.5 6L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </div>
@@ -472,11 +676,31 @@ function Tag({ label }) {
 }
 
 export default function App() {
+  const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem("theme") || "dark";
+    document.documentElement.dataset.theme = saved;
+    return saved;
+  });
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("theme", theme);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    function onFsChange() {
+      setIsFullscreen(!!document.fullscreenElement);
+    }
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
 
   const todayName = DAYS[now.getDay()];
@@ -484,21 +708,64 @@ export default function App() {
   const isAM = hour < 17;
 
   const routine = loadRoutine();
+  // todayData computed before any conditional return so useStreak is always called
+  const todayData = (routine && routine[todayName]) ?? { am: [], pm: [], tags: [] };
+
+  const { checked, toggleStep, streak, streakStatus } = useStreak(todayData);
+
+  function cycleTheme() {
+    setTheme(t => t === "dark" ? "light" : t === "light" ? "auto" : "dark");
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen();
+    }
+  }
+
+  const themeLabel =
+    theme === "dark" ? "Switch to light theme" :
+    theme === "light" ? "Switch to auto theme" :
+    "Switch to dark theme";
+
+  const controls = (
+    <div className="ctrl-bar">
+      <button className="ctrl-btn" onClick={cycleTheme} title={themeLabel} aria-label={themeLabel}>
+        {theme === "dark" ? <MoonIcon /> : theme === "light" ? <SunIcon /> : <AutoIcon />}
+      </button>
+      <button
+        className="ctrl-btn"
+        onClick={toggleFullscreen}
+        title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      >
+        {isFullscreen ? <CompressIcon /> : <ExpandIcon />}
+      </button>
+      <button
+        className="ctrl-btn"
+        onClick={() => navigate("/settings")}
+        title="Settings"
+        aria-label="Settings"
+      >
+        <GearIcon />
+      </button>
+    </div>
+  );
+
   if (!routine) {
     return (
       <>
         <style>{css}</style>
+        {controls}
         <div className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", textAlign: "center", gap: "16px" }}>
-          <div style={{ fontSize: 16, color: "#a09a92" }}>No routine found — go back and create one.</div>
-          <a href="/onboarding" style={{ color: "#c89ad8", fontSize: 14, textDecoration: "none" }}>← Create your routine</a>
+          <div style={{ fontSize: 16, color: "var(--muted)" }}>No routine found — go back and create one.</div>
+          <a href="/onboarding" style={{ color: "var(--pm)", fontSize: 14, textDecoration: "none" }}>← Create your routine</a>
         </div>
       </>
     );
   }
-
-  const todayData = routine[todayName] ?? { am: [], pm: [], tags: [] };
-
-  const { checked, toggleStep, streak, streakStatus } = useStreak(todayData);
 
   const timeStr = now.toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -509,6 +776,8 @@ export default function App() {
   return (
     <>
       <style>{css}</style>
+      {controls}
+
       <div className="page">
         {/* ===== TODAY HERO ===== */}
         <div className="hero">
@@ -591,7 +860,7 @@ export default function App() {
               <div
                 key={dayName}
                 className="week-day"
-                style={isToday ? { borderColor: "#2a2a30", background: "#111115" } : {}}
+                style={isToday ? { borderColor: "var(--border-active)", background: "var(--card-today)" } : {}}
               >
                 <div className="week-day-header">
                   <div style={{ display: "flex", alignItems: "center" }}>

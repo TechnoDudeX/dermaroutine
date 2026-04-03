@@ -81,6 +81,40 @@ function getMissing(routine) {
   return missing
 }
 
+// ── Product checklist ─────────────────────────────────────────────
+const REQUIRED_CHECKS = [
+  { label: 'Cleanser',    keywords: ['cleanser','wash','foam','gel cleanser','micellar'] },
+  { label: 'Moisturiser', keywords: ['moisturizer','moisturiser','cream','lotion','gel cream','barrier'] },
+  { label: 'Sunscreen',   keywords: ['sunscreen','spf','sunblock','uv'] },
+]
+
+const RECOMMENDED_CHECKS = [
+  { label: 'Vitamin C',   keywords: ['vitamin c','ascorbic','l-aa'] },
+  { label: 'Niacinamide', keywords: ['niacinamide','niacin'] },
+  { label: 'Toner',       keywords: ['toner','essence'] },
+  { label: 'Eye cream',   keywords: ['eye cream','eye serum'] },
+  { label: 'Retinoid',    keywords: ['retinol','retinoid','tretinoin','retin-a','adapalene'] },
+  { label: 'Exfoliant',   keywords: ['aha','bha','glycolic','salicylic','lactic','exfoliant','peeling'] },
+]
+
+function matchesAny(productLine, keywords) {
+  const lower = productLine.toLowerCase()
+  return keywords.some(kw => lower.includes(kw))
+}
+
+function buildChecklists(productsText) {
+  const lines = (productsText || '').split('\n').map(l => l.trim()).filter(Boolean)
+  const required = REQUIRED_CHECKS.map(({ label, keywords }) => ({
+    label,
+    found: lines.some(l => matchesAny(l, keywords)),
+  }))
+  const recommended = RECOMMENDED_CHECKS.map(({ label, keywords }) => ({
+    label,
+    found: lines.some(l => matchesAny(l, keywords)),
+  }))
+  return { required, recommended }
+}
+
 // ── AddForm ──────────────────────────────────────────────────────
 function AddForm({ onAdd, onCancel }) {
   const [product, setProduct]   = useState('')
@@ -293,6 +327,13 @@ export default function Review() {
     const raw = localStorage.getItem('routine')
     return raw ? JSON.parse(raw) : null
   })
+
+  const checklists = (() => {
+    try {
+      const ob = JSON.parse(localStorage.getItem('onboarding') || '{}')
+      return buildChecklists(ob.products || '')
+    } catch { return null }
+  })()
   const [editMode, setEditMode]   = useState(false)
   const [showSupport, setShowSupport] = useState(false)
   const [addingIn, setAddingIn]   = useState(null) // { day, slot } | null
@@ -415,6 +456,39 @@ export default function Review() {
         </div>
 
         <div className="rev-content">
+
+          {/* ── Product checklists ── */}
+          {checklists && (
+            <div className="rev-checklist-card">
+              <div className="rev-checklist-section">
+                <div className="rev-checklist-title">Your routine essentials</div>
+                {checklists.required.map(({ label, found }) => (
+                  <div key={label} className={`rev-check-row ${found ? 'rev-check-row--ok' : 'rev-check-row--warn'}`}>
+                    <span className="rev-check-icon">{found ? '✅' : '⚠️'}</span>
+                    <span className="rev-check-text">
+                      {found
+                        ? `You have a ${label}`
+                        : `Missing: ${label} — essential for every routine`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="rev-checklist-divider" />
+              <div className="rev-checklist-section">
+                <div className="rev-checklist-title">Recommended additions</div>
+                {checklists.recommended.map(({ label, found }) => (
+                  <div key={label} className={`rev-check-row ${found ? 'rev-check-row--ok' : 'rev-check-row--soft'}`}>
+                    <span className="rev-check-icon">{found ? '✅' : '○'}</span>
+                    <span className="rev-check-text">
+                      {found
+                        ? label
+                        : `${label} — not in your current routine, optional but beneficial`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── Missing essentials banners ── */}
           {missing.map(key => (
@@ -595,6 +669,52 @@ const styles = `
   .rev-banner--edit .rev-banner-icon { color: ${C.accent}; }
 
   .rev-banner-text { flex: 1; }
+
+  /* ── Checklist card ── */
+  .rev-checklist-card {
+    background: ${C.card};
+    border: 1px solid ${C.border};
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .rev-checklist-section {
+    padding: 18px 20px;
+  }
+
+  .rev-checklist-divider {
+    height: 1px;
+    background: ${C.borderLight};
+  }
+
+  .rev-checklist-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: ${C.faint};
+    margin-bottom: 12px;
+  }
+
+  .rev-check-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .rev-check-icon {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    width: 18px;
+    text-align: center;
+  }
+
+  .rev-check-row--ok   .rev-check-text { color: ${C.text}; font-weight: 500; }
+  .rev-check-row--warn .rev-check-text { color: ${C.warn}; font-weight: 500; }
+  .rev-check-row--soft .rev-check-text { color: ${C.muted}; }
 
   /* ── Day card ── */
   .rev-day {
