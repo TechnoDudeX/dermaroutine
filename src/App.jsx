@@ -607,8 +607,8 @@ const css = `
 
   /* ---- STEP CHECK ---- */
   .step-check {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     border: 1.5px solid var(--border-check);
     flex-shrink: 0;
@@ -620,7 +620,7 @@ const css = `
   }
 
   .step-check--done {
-    background: var(--check-bg);
+    background: var(--check-border);
     border-color: var(--check-border);
   }
 
@@ -891,10 +891,7 @@ function StepRow({ item, isChecked, isSkipped, onToggle, onSkip }) {
   const isDone = isChecked || isSkipped;
 
   return (
-    <div
-      className="step-row"
-      style={isDone ? { opacity: 0.55 } : undefined}
-    >
+    <div className="step-row">
       <div className="step-icon">{stepIcons[item.step] || "•"}</div>
       <div
         style={{ flex: 1, cursor: hasNotes ? "pointer" : "default" }}
@@ -929,8 +926,8 @@ function StepRow({ item, isChecked, isSkipped, onToggle, onSkip }) {
         style={{ cursor: "pointer" }}
       >
         {isChecked && (
-          <svg width="9" height="7" viewBox="0 0 9 7" fill="none" style={{ color: "var(--check-icon)" }}>
-            <path d="M1 3.5L3.5 6L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="11" height="8" viewBox="0 0 11 8" fill="none" style={{ color: "#fff" }}>
+            <path d="M1 4L4 7L10 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
         {isSkipped && (
