@@ -19,9 +19,7 @@ npx netlify dev   # runs Vite + functions together on port 8888
 
 Required in `.env` (not committed):
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` — Supabase client
-- `VITE_STRIPE_PUBLISHABLE_KEY` — Stripe.js (frontend)
 - `ANTHROPIC_API_KEY` — used server-side in `netlify/functions/generate-routine.js`
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — used in Stripe Netlify functions
 
 ## Architecture
 
@@ -47,16 +45,15 @@ Required in `.env` (not committed):
 
 **Netlify Functions** (`netlify/functions/`):
 - `generate-routine.js` — POST, calls Claude API (`claude-sonnet-4-20250514`) with a detailed system prompt encoding r/SkincareAddiction routine ordering rules. Returns `{ routine }` JSON.
-- `create-checkout.js` — Stripe Checkout session creation (stub/partial)
-- `stripe-webhook.js` — Stripe webhook handler (stub/partial)
 
-**Auth / payments** (partially implemented):
+**Auth** (partially implemented):
 - `src/lib/supabase.js` — Supabase client singleton
 - `src/context/AuthContext.jsx` — Supabase auth state listener (stub)
-- `src/lib/stripe.js` — `loadStripe(...)` call (stub)
-- `src/components/AuthGuard.jsx`, `PaymentGuard.jsx` — route guards (stubs)
+- `src/components/AuthGuard.jsx` — route guard (stub)
 - `src/hooks/useAuth.js`, `useProfile.js` — auth/profile hooks (stubs)
-- `src/pages/Login.jsx`, `Checkout.jsx` — auth/payment pages (stubs)
+- `src/pages/Login.jsx` — auth page (stub)
+
+**Donations**: Optional via Buy Me a Coffee (external link, no integration needed).
 
 **Styling**: All CSS is written as inline `<style>` tags inside each component (no CSS files, no Tailwind). Each page defines its own color palette via a local `C` constant object. `App.jsx` uses a dark theme (`#0b0b0d` bg); all other pages use a warm light theme (`#fdf8f5` bg).
 
