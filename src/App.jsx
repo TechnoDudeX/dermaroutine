@@ -607,21 +607,22 @@ const css = `
 
   /* ---- STEP CHECK ---- */
   .step-check {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
     border: 1.5px solid var(--border-check);
     flex-shrink: 0;
-    margin-left: auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
   }
 
   .step-check--done {
-    background: var(--check-border);
-    border-color: var(--check-border);
+    background: #3a9e4a;
+    border-color: #3a9e4a;
+    box-shadow: 0 2px 8px rgba(58, 158, 74, 0.35);
   }
 
   /* ---- STEP NOTES ---- */
@@ -892,6 +893,22 @@ function StepRow({ item, isChecked, isSkipped, onToggle, onSkip }) {
 
   return (
     <div className="step-row">
+      <div
+        className={`step-check${isChecked ? " step-check--done" : ""}${isSkipped ? " step-check--skipped" : ""}`}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      >
+        {isChecked && (
+          <svg width="12" height="9" viewBox="0 0 12 9" fill="none" style={{ color: "#fff" }}>
+            <path d="M1 4.5L4.5 8L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+        {isSkipped && (
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" style={{ color: "var(--text-faint)" }}>
+            <line x1="1" y1="1" x2="8" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="8" y1="1" x2="1" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        )}
+      </div>
       <div className="step-icon">{stepIcons[item.step] || "•"}</div>
       <div
         style={{ flex: 1, cursor: hasNotes ? "pointer" : "default" }}
@@ -905,7 +922,7 @@ function StepRow({ item, isChecked, isSkipped, onToggle, onSkip }) {
           className="step-product"
           style={
             isChecked
-              ? { textDecoration: "line-through", textDecorationColor: "var(--check-border)", color: "var(--check-icon)" }
+              ? { textDecoration: "line-through", textDecorationColor: "#3a9e4a", color: "#3a9e4a" }
               : isSkipped
               ? { textDecoration: "line-through" }
               : undefined
@@ -920,23 +937,6 @@ function StepRow({ item, isChecked, isSkipped, onToggle, onSkip }) {
       {!isDone && (
         <button className="skip-btn" onClick={(e) => { e.stopPropagation(); onSkip(); }}>skip</button>
       )}
-      <div
-        className={`step-check${isChecked ? " step-check--done" : ""}${isSkipped ? " step-check--skipped" : ""}`}
-        onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        style={{ cursor: "pointer" }}
-      >
-        {isChecked && (
-          <svg width="11" height="8" viewBox="0 0 11 8" fill="none" style={{ color: "#fff" }}>
-            <path d="M1 4L4 7L10 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-        {isSkipped && (
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style={{ color: "var(--text-faint)" }}>
-            <line x1="1" y1="1" x2="7" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="7" y1="1" x2="1" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        )}
-      </div>
     </div>
   );
 }
