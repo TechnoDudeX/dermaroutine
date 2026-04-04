@@ -623,6 +623,136 @@ const css = `
     border-color: var(--check-border);
   }
 
+  /* ---- PROGRESS BAR ---- */
+  .progress-bar-wrap {
+    margin-top: 8px;
+    margin-bottom: 14px;
+  }
+
+  .progress-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+    margin-bottom: 5px;
+  }
+
+  .progress-track {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .col-am .progress-fill { background: var(--am); }
+  .col-pm .progress-fill { background: var(--pm); }
+
+  /* ---- ALL DONE STATE ---- */
+  .all-done {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px 16px;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .all-done-icon { font-size: 28px; }
+
+  .all-done-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-strong);
+  }
+
+  .all-done-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ---- RESET BUTTON ---- */
+  .reset-btn {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-faint);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    margin-top: 6px;
+  }
+
+  .reset-btn:hover {
+    color: var(--text);
+    border-color: var(--border-active);
+  }
+
+  /* ---- HEATMAP ---- */
+  .heatmap {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .heatmap-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .heatmap-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .heatmap-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-check);
+    background: transparent;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .heatmap-dot--done {
+    background: var(--check-bg);
+    border-color: var(--check-border);
+  }
+
+  .heatmap-dot--today {
+    border-color: var(--marker);
+    box-shadow: 0 0 0 2px var(--marker-glow-0);
+  }
+
+  /* ---- COLLAPSIBLE WEEK DAY ---- */
+  .week-day-toggle {
+    font-size: 14px;
+    color: var(--text-faint);
+    transition: transform 0.2s;
+    margin-left: 8px;
+  }
+
+  .week-day-toggle--open {
+    transform: rotate(90deg);
+  }
+
   /* ---- FADE IN ---- */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
@@ -711,7 +841,38 @@ export default function App() {
   // todayData computed before any conditional return so useStreak is always called
   const todayData = (routine && routine[todayName]) ?? { am: [], pm: [], tags: [] };
 
-  const { checked, toggleStep, streak, streakStatus } = useStreak(todayData);
+  const { checked, toggleStep, resetToday, todayComplete, streak, streakStatus, streakData, todayStr } = useStreak(todayData);
+  const [expandedDays, setExpandedDays] = useState({ [todayName]: true });
+
+  function toggleDay(dayName) {
+    setExpandedDays(prev => ({ ...prev, [dayName]: !prev[dayName] }));
+  }
+
+  // Progress counts for AM/PM
+  const amTotal = todayData.am.length;
+  const pmTotal = todayData.pm.length;
+  const amDone = todayData.am.filter((_, i) => checked.has(`am-${i}`)).length;
+  const pmDone = todayData.pm.filter((_, i) => checked.has(`pm-${i}`)).length;
+  const amComplete = amTotal > 0 && amDone === amTotal;
+  const pmComplete = pmTotal > 0 && pmDone === pmTotal;
+
+  // 7-day heatmap data (today + 6 days before)
+  const heatmapDays = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const ds = `${y}-${m}-${day}`;
+    const isToday = ds === todayStr;
+    heatmapDays.push({
+      label: DAY_LABELS[(d.getDay() + 6) % 7], // Mon=0
+      dateStr: ds,
+      done: isToday ? todayComplete : !!streakData[ds],
+      isToday,
+    });
+  }
 
   function cycleTheme() {
     setTheme(t => t === "dark" ? "light" : t === "light" ? "auto" : "dark");
@@ -815,33 +976,80 @@ export default function App() {
             )}
           </div>
 
+          <div className="heatmap fade-in fade-d2">
+            {heatmapDays.map((h) => (
+              <div className="heatmap-day" key={h.dateStr}>
+                <span className="heatmap-label">{h.label}</span>
+                <span className={`heatmap-dot${h.done ? " heatmap-dot--done" : ""}${h.isToday ? " heatmap-dot--today" : ""}`} />
+              </div>
+            ))}
+          </div>
+
           <div className="today-grid fade-in fade-d3">
             {/* AM Column */}
             <div className={`col col-am ${isAM ? "col-active" : ""}`}>
               <div className="col-header">☀️  Morning{isAM ? " — Now" : ""}</div>
-              {todayData.am.map((item, i) => (
-                <StepRow
-                  key={i}
-                  item={item}
-                  isChecked={checked.has(`am-${i}`)}
-                  onToggle={() => toggleStep("am", i)}
-                />
-              ))}
+              {amTotal > 0 && (
+                <div className="progress-bar-wrap">
+                  <div className="progress-label">{amDone} / {amTotal} steps</div>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: `${(amDone / amTotal) * 100}%` }} />
+                  </div>
+                </div>
+              )}
+              {amComplete ? (
+                <div className="all-done">
+                  <div className="all-done-icon">✨</div>
+                  <div className="all-done-text">Morning done</div>
+                  <div className="all-done-sub">All {amTotal} steps complete</div>
+                </div>
+              ) : (
+                todayData.am.map((item, i) => (
+                  <StepRow
+                    key={i}
+                    item={item}
+                    isChecked={checked.has(`am-${i}`)}
+                    onToggle={() => toggleStep("am", i)}
+                  />
+                ))
+              )}
             </div>
 
             {/* PM Column */}
             <div className={`col col-pm ${!isAM ? "col-active" : ""}`}>
               <div className="col-header">🌙  Evening{!isAM ? " — Now" : ""}</div>
-              {todayData.pm.map((item, i) => (
-                <StepRow
-                  key={i}
-                  item={item}
-                  isChecked={checked.has(`pm-${i}`)}
-                  onToggle={() => toggleStep("pm", i)}
-                />
-              ))}
+              {pmTotal > 0 && (
+                <div className="progress-bar-wrap">
+                  <div className="progress-label">{pmDone} / {pmTotal} steps</div>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: `${(pmDone / pmTotal) * 100}%` }} />
+                  </div>
+                </div>
+              )}
+              {pmComplete ? (
+                <div className="all-done">
+                  <div className="all-done-icon">🌙</div>
+                  <div className="all-done-text">Evening done</div>
+                  <div className="all-done-sub">All {pmTotal} steps complete</div>
+                </div>
+              ) : (
+                todayData.pm.map((item, i) => (
+                  <StepRow
+                    key={i}
+                    item={item}
+                    isChecked={checked.has(`pm-${i}`)}
+                    onToggle={() => toggleStep("pm", i)}
+                  />
+                ))
+              )}
             </div>
           </div>
+
+          {checked.size > 0 && (
+            <div style={{ textAlign: "center", marginTop: 16 }} className="fade-in">
+              <button className="reset-btn" onClick={resetToday}>Reset today</button>
+            </div>
+          )}
         </div>
 
         {/* ===== DIVIDER ===== */}
@@ -856,34 +1064,40 @@ export default function App() {
           {DAY_ORDER.map((dayName) => {
             const d = routine[dayName];
             const isToday = dayName === todayName;
+            const isOpen = !!expandedDays[dayName];
             return (
               <div
                 key={dayName}
                 className="week-day"
                 style={isToday ? { borderColor: "var(--border-active)", background: "var(--card-today)" } : {}}
               >
-                <div className="week-day-header">
+                <div className="week-day-header" onClick={() => toggleDay(dayName)}>
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <span className="week-day-name">{dayName}</span>
                     {isToday && <span className="today-marker" />}
+                    <span className={`week-day-toggle${isOpen ? " week-day-toggle--open" : ""}`}>›</span>
                   </div>
                   <div className="week-day-tags">
                     {d.tags.map((t) => <Tag key={t} label={t} />)}
                   </div>
                 </div>
 
-                <div className="week-day-affirmation">"{affirmations[dayName]}"</div>
+                {isOpen && (
+                  <>
+                    <div className="week-day-affirmation">"{affirmations[dayName]}"</div>
 
-                <div className="week-day-body">
-                  <div className="week-col week-col-am">
-                    <div className="week-col-label">☀️  Morning</div>
-                    {d.am.map((item, i) => <WeekStep key={i} item={item} />)}
-                  </div>
-                  <div className="week-col week-col-pm">
-                    <div className="week-col-label">🌙  Evening</div>
-                    {d.pm.map((item, i) => <WeekStep key={i} item={item} />)}
-                  </div>
-                </div>
+                    <div className="week-day-body">
+                      <div className="week-col week-col-am">
+                        <div className="week-col-label">☀️  Morning</div>
+                        {d.am.map((item, i) => <WeekStep key={i} item={item} />)}
+                      </div>
+                      <div className="week-col week-col-pm">
+                        <div className="week-col-label">🌙  Evening</div>
+                        {d.pm.map((item, i) => <WeekStep key={i} item={item} />)}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}

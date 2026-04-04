@@ -97,6 +97,11 @@ export function useStreak(todayData) {
     });
   }
 
+  // ── Reset all steps for today ─────────────────────────────────
+  function resetToday() {
+    setChecked(new Set());
+  }
+
   // ── Streak calculation ────────────────────────────────────────
   let streakData = {};
   try {
@@ -122,5 +127,5 @@ export function useStreak(todayData) {
     streakStatus = "zero";
   }
 
-  return { checked, toggleStep, todayComplete, streak, streakStatus };
+  return { checked, toggleStep, resetToday, todayComplete, streak, streakStatus, streakData, todayStr };
 }
