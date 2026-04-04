@@ -39,6 +39,7 @@ function loadRoutine() {
     const mapStep = (s) => ({
       step: CAT_TO_STEP[s.category] ?? (s.category.charAt(0).toUpperCase() + s.category.slice(1)),
       product: s.product,
+      notes: s.notes || "",
     });
     result[day] = {
       am: (data.am || []).map(mapStep),
@@ -623,6 +624,122 @@ const css = `
     border-color: var(--check-border);
   }
 
+  /* ---- STEP NOTES ---- */
+  .step-notes-hint {
+    font-size: 9px;
+    color: var(--text-faint);
+    margin-left: 2px;
+  }
+
+  .step-notes {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-style: italic;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* ---- SKIP BUTTON ---- */
+  .skip-btn {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--text-faint);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .step-row:hover .skip-btn { opacity: 1; }
+  .skip-btn:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .skip-btn { opacity: 0.6; }
+  }
+
+  .step-check--skipped {
+    background: var(--border);
+    border-color: var(--text-faint);
+  }
+
+  /* ---- FULL DAY CELEBRATION ---- */
+  .day-complete {
+    text-align: center;
+    padding: 40px 20px 24px;
+  }
+
+  .day-complete-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+
+  .day-complete-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-strong);
+    margin-bottom: 6px;
+  }
+
+  .day-complete-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  /* ---- TOMORROW PREVIEW ---- */
+  .tomorrow-preview {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: left;
+  }
+
+  .tomorrow-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+  }
+
+  .tomorrow-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .tomorrow-cols { grid-template-columns: 1fr; }
+  }
+
+  .tomorrow-col-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .tomorrow-col-am .tomorrow-col-label { color: var(--am); }
+  .tomorrow-col-pm .tomorrow-col-label { color: var(--pm); }
+
+  .tomorrow-step {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 3px 0;
+  }
+
   /* ---- PROGRESS BAR ---- */
   .progress-bar-wrap {
     margin-top: 8px;
@@ -768,22 +885,58 @@ const css = `
 
 `;
 
-function StepRow({ item, isChecked, onToggle }) {
+function StepRow({ item, isChecked, isSkipped, onToggle, onSkip }) {
+  const [showNotes, setShowNotes] = useState(false);
+  const hasNotes = !!item.notes;
+  const isDone = isChecked || isSkipped;
+
   return (
     <div
       className="step-row"
-      onClick={onToggle}
-      style={isChecked ? { opacity: 0.45 } : undefined}
+      style={isDone ? { opacity: 0.55 } : undefined}
     >
       <div className="step-icon">{stepIcons[item.step] || "•"}</div>
-      <div style={{ flex: 1 }}>
-        <div className="step-label">{item.step}</div>
-        <div className="step-product">{item.product}</div>
+      <div
+        style={{ flex: 1, cursor: hasNotes ? "pointer" : "default" }}
+        onClick={() => hasNotes && setShowNotes((v) => !v)}
+      >
+        <div className="step-label">
+          {item.step}
+          {hasNotes && <span className="step-notes-hint">{showNotes ? " ▾" : " ▸"}</span>}
+        </div>
+        <div
+          className="step-product"
+          style={
+            isChecked
+              ? { textDecoration: "line-through", textDecorationColor: "var(--check-border)", color: "var(--check-icon)" }
+              : isSkipped
+              ? { textDecoration: "line-through" }
+              : undefined
+          }
+        >
+          {item.product}
+        </div>
+        {showNotes && hasNotes && (
+          <div className="step-notes">{item.notes}</div>
+        )}
       </div>
-      <div className={`step-check${isChecked ? " step-check--done" : ""}`}>
+      {!isDone && (
+        <button className="skip-btn" onClick={(e) => { e.stopPropagation(); onSkip(); }}>skip</button>
+      )}
+      <div
+        className={`step-check${isChecked ? " step-check--done" : ""}${isSkipped ? " step-check--skipped" : ""}`}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        style={{ cursor: "pointer" }}
+      >
         {isChecked && (
           <svg width="9" height="7" viewBox="0 0 9 7" fill="none" style={{ color: "var(--check-icon)" }}>
             <path d="M1 3.5L3.5 6L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+        {isSkipped && (
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style={{ color: "var(--text-faint)" }}>
+            <line x1="1" y1="1" x2="7" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="7" y1="1" x2="1" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         )}
       </div>
@@ -841,20 +994,25 @@ export default function App() {
   // todayData computed before any conditional return so useStreak is always called
   const todayData = (routine && routine[todayName]) ?? { am: [], pm: [], tags: [] };
 
-  const { checked, toggleStep, resetToday, todayComplete, streak, streakStatus, streakData, todayStr } = useStreak(todayData);
+  const { checked, skipped, toggleStep, skipStep, resetToday, todayComplete, streak, bestStreak, streakStatus, streakData, todayStr } = useStreak(todayData);
   const [expandedDays, setExpandedDays] = useState({ [todayName]: true });
 
   function toggleDay(dayName) {
     setExpandedDays(prev => ({ ...prev, [dayName]: !prev[dayName] }));
   }
 
-  // Progress counts for AM/PM
+  // Progress counts for AM/PM (checked + skipped both count)
   const amTotal = todayData.am.length;
   const pmTotal = todayData.pm.length;
-  const amDone = todayData.am.filter((_, i) => checked.has(`am-${i}`)).length;
-  const pmDone = todayData.pm.filter((_, i) => checked.has(`pm-${i}`)).length;
+  const amDone = todayData.am.filter((_, i) => checked.has(`am-${i}`) || skipped.has(`am-${i}`)).length;
+  const pmDone = todayData.pm.filter((_, i) => checked.has(`pm-${i}`) || skipped.has(`pm-${i}`)).length;
   const amComplete = amTotal > 0 && amDone === amTotal;
   const pmComplete = pmTotal > 0 && pmDone === pmTotal;
+
+  // Tomorrow's routine for preview
+  const tomorrowIdx = (now.getDay() + 1) % 7;
+  const tomorrowName = DAYS[tomorrowIdx];
+  const tomorrowData = routine ? routine[tomorrowName] : null;
 
   // 7-day heatmap data (today + 6 days before)
   const heatmapDays = [];
@@ -961,12 +1119,12 @@ export default function App() {
           <div className="fade-in fade-d2">
             {streakStatus === "active" && (
               <div className="streak-banner streak-active">
-                🔥 {streak} day streak
+                🔥 {streak} day streak{bestStreak > streak ? ` (best: ${bestStreak})` : bestStreak === streak && streak > 1 ? " — personal best!" : ""}
               </div>
             )}
             {streakStatus === "broken" && (
               <div className="streak-banner streak-broken">
-                Streak broken — start fresh today
+                Streak broken — start fresh today{bestStreak > 0 ? ` (best: ${bestStreak})` : ""}
               </div>
             )}
             {streakStatus === "zero" && (
@@ -985,70 +1143,109 @@ export default function App() {
             ))}
           </div>
 
-          <div className="today-grid fade-in fade-d3">
-            {/* AM Column */}
-            <div className={`col col-am ${isAM ? "col-active" : ""}`}>
-              <div className="col-header">☀️  Morning{isAM ? " — Now" : ""}</div>
-              {amTotal > 0 && (
-                <div className="progress-bar-wrap">
-                  <div className="progress-label">{amDone} / {amTotal} steps</div>
-                  <div className="progress-track">
-                    <div className="progress-fill" style={{ width: `${(amDone / amTotal) * 100}%` }} />
+          {todayComplete ? (
+            <div className="fade-in fade-d3">
+              <div className="day-complete">
+                <div className="day-complete-icon">🎉</div>
+                <div className="day-complete-title">You're done for the day</div>
+                <div className="day-complete-sub">
+                  All {amTotal + pmTotal} steps complete — rest up and let your skin do the work.
+                </div>
+                <button className="reset-btn" onClick={resetToday}>Reset today</button>
+              </div>
+
+              {tomorrowData && (
+                <div className="tomorrow-preview">
+                  <div className="tomorrow-title">Tomorrow — {tomorrowName}</div>
+                  <div className="tomorrow-cols">
+                    <div className="tomorrow-col-am">
+                      <div className="tomorrow-col-label">☀️ Morning</div>
+                      {tomorrowData.am.map((item, i) => (
+                        <div className="tomorrow-step" key={i}>{item.step} — {item.product}</div>
+                      ))}
+                    </div>
+                    <div className="tomorrow-col-pm">
+                      <div className="tomorrow-col-label">🌙 Evening</div>
+                      {tomorrowData.pm.map((item, i) => (
+                        <div className="tomorrow-step" key={i}>{item.step} — {item.product}</div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
-              {amComplete ? (
-                <div className="all-done">
-                  <div className="all-done-icon">✨</div>
-                  <div className="all-done-text">Morning done</div>
-                  <div className="all-done-sub">All {amTotal} steps complete</div>
-                </div>
-              ) : (
-                todayData.am.map((item, i) => (
-                  <StepRow
-                    key={i}
-                    item={item}
-                    isChecked={checked.has(`am-${i}`)}
-                    onToggle={() => toggleStep("am", i)}
-                  />
-                ))
-              )}
             </div>
+          ) : (
+            <>
+              <div className="today-grid fade-in fade-d3">
+                {/* AM Column */}
+                <div className={`col col-am ${isAM ? "col-active" : ""}`}>
+                  <div className="col-header">☀️  Morning{isAM ? " — Now" : ""}</div>
+                  {amTotal > 0 && (
+                    <div className="progress-bar-wrap">
+                      <div className="progress-label">{amDone} / {amTotal} steps</div>
+                      <div className="progress-track">
+                        <div className="progress-fill" style={{ width: `${(amDone / amTotal) * 100}%` }} />
+                      </div>
+                    </div>
+                  )}
+                  {amComplete ? (
+                    <div className="all-done">
+                      <div className="all-done-icon">✨</div>
+                      <div className="all-done-text">Morning done</div>
+                      <div className="all-done-sub">All {amTotal} steps complete</div>
+                    </div>
+                  ) : (
+                    todayData.am.map((item, i) => (
+                      <StepRow
+                        key={i}
+                        item={item}
+                        isChecked={checked.has(`am-${i}`)}
+                        isSkipped={skipped.has(`am-${i}`)}
+                        onToggle={() => toggleStep("am", i)}
+                        onSkip={() => skipStep("am", i)}
+                      />
+                    ))
+                  )}
+                </div>
 
-            {/* PM Column */}
-            <div className={`col col-pm ${!isAM ? "col-active" : ""}`}>
-              <div className="col-header">🌙  Evening{!isAM ? " — Now" : ""}</div>
-              {pmTotal > 0 && (
-                <div className="progress-bar-wrap">
-                  <div className="progress-label">{pmDone} / {pmTotal} steps</div>
-                  <div className="progress-track">
-                    <div className="progress-fill" style={{ width: `${(pmDone / pmTotal) * 100}%` }} />
-                  </div>
+                {/* PM Column */}
+                <div className={`col col-pm ${!isAM ? "col-active" : ""}`}>
+                  <div className="col-header">🌙  Evening{!isAM ? " — Now" : ""}</div>
+                  {pmTotal > 0 && (
+                    <div className="progress-bar-wrap">
+                      <div className="progress-label">{pmDone} / {pmTotal} steps</div>
+                      <div className="progress-track">
+                        <div className="progress-fill" style={{ width: `${(pmDone / pmTotal) * 100}%` }} />
+                      </div>
+                    </div>
+                  )}
+                  {pmComplete ? (
+                    <div className="all-done">
+                      <div className="all-done-icon">🌙</div>
+                      <div className="all-done-text">Evening done</div>
+                      <div className="all-done-sub">All {pmTotal} steps complete</div>
+                    </div>
+                  ) : (
+                    todayData.pm.map((item, i) => (
+                      <StepRow
+                        key={i}
+                        item={item}
+                        isChecked={checked.has(`pm-${i}`)}
+                        isSkipped={skipped.has(`pm-${i}`)}
+                        onToggle={() => toggleStep("pm", i)}
+                        onSkip={() => skipStep("pm", i)}
+                      />
+                    ))
+                  )}
                 </div>
-              )}
-              {pmComplete ? (
-                <div className="all-done">
-                  <div className="all-done-icon">🌙</div>
-                  <div className="all-done-text">Evening done</div>
-                  <div className="all-done-sub">All {pmTotal} steps complete</div>
-                </div>
-              ) : (
-                todayData.pm.map((item, i) => (
-                  <StepRow
-                    key={i}
-                    item={item}
-                    isChecked={checked.has(`pm-${i}`)}
-                    onToggle={() => toggleStep("pm", i)}
-                  />
-                ))
-              )}
-            </div>
-          </div>
+              </div>
 
-          {checked.size > 0 && (
-            <div style={{ textAlign: "center", marginTop: 16 }} className="fade-in">
-              <button className="reset-btn" onClick={resetToday}>Reset today</button>
-            </div>
+              {(checked.size > 0 || skipped.size > 0) && (
+                <div style={{ textAlign: "center", marginTop: 16 }} className="fade-in">
+                  <button className="reset-btn" onClick={resetToday}>Reset today</button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -1104,8 +1301,8 @@ export default function App() {
         </div>
 
         <div className="footer-note">
-          If irritation builds from Retin-A, swap a retinoid night for a rest night.<br />
-          Apply Zoryve per your prescription. Sunscreen every single morning.
+          If you experience irritation, stop use immediately and consult a healthcare professional.<br />
+          Sunscreen every single morning.
         </div>
       </div>
     </>

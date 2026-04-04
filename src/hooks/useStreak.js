@@ -59,6 +59,19 @@ export function useStreak(todayData) {
     }
   });
 
+  // ── Skipped state (resets each calendar day) ──────────────────
+  const [skipped, setSkipped] = useState(() => {
+    try {
+      const raw = localStorage.getItem("skippedToday");
+      if (!raw) return new Set();
+      const parsed = JSON.parse(raw);
+      if (parsed.date !== toDateStr(new Date())) return new Set();
+      return new Set(parsed.keys);
+    } catch {
+      return new Set();
+    }
+  });
+
   // Persist checked state
   useEffect(() => {
     localStorage.setItem(
@@ -67,7 +80,15 @@ export function useStreak(todayData) {
     );
   }, [checked]);
 
-  const todayComplete = totalSteps > 0 && checked.size >= totalSteps;
+  // Persist skipped state
+  useEffect(() => {
+    localStorage.setItem(
+      "skippedToday",
+      JSON.stringify({ date: toDateStr(new Date()), keys: [...skipped] })
+    );
+  }, [skipped]);
+
+  const todayComplete = totalSteps > 0 && (checked.size + skipped.size) >= totalSteps;
 
   // ── Write to streakData when today becomes complete ───────────
   useEffect(() => {
@@ -89,7 +110,30 @@ export function useStreak(todayData) {
   // ── Toggle a single step ──────────────────────────────────────
   function toggleStep(slot, index) {
     const key = `${slot}-${index}`;
+    // Remove from skipped if it was skipped
+    setSkipped((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
     setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  // ── Skip a single step ────────────────────────────────────────
+  function skipStep(slot, index) {
+    const key = `${slot}-${index}`;
+    // Remove from checked if it was checked
+    setChecked((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+    setSkipped((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -100,6 +144,7 @@ export function useStreak(todayData) {
   // ── Reset all steps for today ─────────────────────────────────
   function resetToday() {
     setChecked(new Set());
+    setSkipped(new Set());
   }
 
   // ── Streak calculation ────────────────────────────────────────
@@ -114,6 +159,22 @@ export function useStreak(todayData) {
   const yesterdayStr = dayBefore(todayStr);
   const streak = calcStreak(streakData, todayStr, todayComplete);
 
+  // ── Best streak tracking ──────────────────────────────────────
+  let bestStreak = 0;
+  try {
+    bestStreak = parseInt(localStorage.getItem("bestStreak") || "0", 10);
+  } catch {
+    // ignore
+  }
+  if (streak > bestStreak) {
+    bestStreak = streak;
+    try {
+      localStorage.setItem("bestStreak", String(bestStreak));
+    } catch {
+      // ignore
+    }
+  }
+
   // hasPastHistory: any completed day strictly before today
   const hasPastHistory = Object.keys(streakData).some((d) => d < todayStr);
   const yesterdayDone = !!streakData[yesterdayStr];
@@ -127,5 +188,5 @@ export function useStreak(todayData) {
     streakStatus = "zero";
   }
 
-  return { checked, toggleStep, resetToday, todayComplete, streak, streakStatus, streakData, todayStr };
+  return { checked, skipped, toggleStep, skipStep, resetToday, todayComplete, streak, bestStreak, streakStatus, streakData, todayStr };
 }
