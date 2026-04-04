@@ -898,8 +898,8 @@ function StepRow({ item, isChecked, isSkipped, onToggle, onSkip }) {
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
       >
         {isChecked && (
-          <svg width="12" height="9" viewBox="0 0 12 9" fill="none" style={{ color: "#fff" }}>
-            <path d="M1 4.5L4.5 8L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+            <path d="M1.5 5L5 8.5L11.5 1.5" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
         {isSkipped && (
